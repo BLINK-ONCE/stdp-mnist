@@ -205,40 +205,50 @@ print 'time needed to load test set:', end - start
 
 
 #------------------------------------------------------------------------------ 
-# set parameters and equations
+# set parameters and equations # 매개변수 및 방정식 설정
 #------------------------------------------------------------------------------
 test_mode = True
 
-b.set_global_preferences( 
+b.set_global_preferences(
+                        # 범위 내에서 제공되거나 정의되지 않은 경우 사용할 기본 시계입니다.
                         defaultclock = b.Clock(dt=0.5*b.ms), # The default clock to use if none is provided or defined in any enclosing scope.
+                        # 함수가 정의된 경우 인라인 컴파일 C 코드를 사용해야 하는지 여부를 정의합니다.
                         useweave = True, # Defines whether or not functions should use inlined compiled C code where defined.
-                        gcc_options = ['-ffast-math -march=native'],  # Defines the compiler switches passed to the gcc compiler. 
-                        #For gcc versions 4.2+ we recommend using -march=native. By default, the -ffast-math optimizations are turned on 
+                        # gcc 컴파일러에 전달된 컴파일러 스위치를 정의합니다.
+                        gcc_options = ['-ffast-math -march=native'],  # Defines the compiler switches passed to the gcc compiler.
+                        #For gcc versions 4.2+ we recommend using -march=native. By default, the -ffast-math optimizations are turned on
+                        # gcc 버전 4.2+의 경우 -march=limited를 사용하는 것이 좋습니다. 기본적으로 -fast-math 최적화가 켜져 있습니다.
+                        # 실험 코드 생성 지원의 사용 여부.
                         usecodegen = True,  # Whether or not to use experimental code generation support.
+                        # 실험 코드 생성 지원에 C를 사용할지 여부.
                         usecodegenweave = True,  # Whether or not to use C with experimental code generation support.
+                        # 상태 업데이트기에서 실험 코드 생성 지원 사용 여부.
                         usecodegenstateupdate = True,  # Whether or not to use experimental code generation support on state updaters.
+                        # 임계값에 실험 코드 생성 지원 사용 여부.
                         usecodegenthreshold = False,  # Whether or not to use experimental code generation support on thresholds.
+                        # 실험적인 새 C 전파 함수의 사용 여부.
                         usenewpropagate = True,  # Whether or not to use experimental new C propagation functions.
+                        # 실험용 새 CSTDP 사용 여부.
                         usecstdp = True,  # Whether or not to use experimental new C STDP.
-                       ) 
+                       )
 
 
-np.random.seed(0)
+np.random.seed(0) # 동일한 난수 생성
 data_path = './'
-if test_mode:
+if test_mode:   # test 모드일 경우
     weight_path = data_path + 'weights/'
-    num_examples = 10000 * 1
-    use_testing_set = True
-    do_plot_performance = False
-    record_spikes = True
-    ee_STDP_on = False
-    update_interval = num_examples
+    num_examples = 10000 * 1    # num_examples = 10000
+    use_testing_set = True  # 테스트 셋 사용
+    do_plot_performance = False # 성능 표시
+    record_spikes = True    # 스파이크 기록
+    ee_STDP_on = False  #
+    update_interval = num_examples # 업데이트 간격
 else:
-    weight_path = data_path + 'random/'  
+    weight_path = data_path + 'random/'
     num_examples = 60000 * 3
     use_testing_set = False
     do_plot_performance = True
-    if num_examples <= 60000:    
+    if num_examples <= 60000:
         record_spikes = True
     else:
         record_spikes = True
@@ -248,24 +258,24 @@ else:
 ending = ''
 n_input = 784
 n_e = 400
-n_i = n_e 
-single_example_time =   0.35 * b.second #
-resting_time = 0.15 * b.second
-runtime = num_examples * (single_example_time + resting_time)
-if num_examples <= 10000:    
+n_i = n_e
+single_example_time =   0.35 * b.second # 350ms
+resting_time = 0.15 * b.second # 휴식 시간 150ms
+runtime = num_examples * (single_example_time + resting_time) # 예시 개수 * (350 + 150)
+if num_examples <= 10000:    # num_examples가 10000보다 작거나 같을 경우
     update_interval = num_examples
     weight_update_interval = 20
 else:
     update_interval = 10000
     weight_update_interval = 100
-if num_examples <= 60000:    
+if num_examples <= 60000:
     save_connections_interval = 10000
 else:
     save_connections_interval = 10000
     update_interval = 10000
 
-v_rest_e = -65. * b.mV 
-v_rest_i = -60. * b.mV 
+v_rest_e = -65. * b.mV
+v_rest_i = -60. * b.mV
 v_reset_e = -65. * b.mV
 v_reset_i = -45. * b.mV
 v_thresh_e = -52. * b.mV
@@ -280,7 +290,7 @@ input_population_names = ['X']
 population_names = ['A']
 input_connection_names = ['XA']
 save_conns = ['XeAe']
-input_conn_names = ['ee_input'] 
+input_conn_names = ['ee_input']
 recurrent_conn_names = ['ei', 'ie']
 weight['ee_input'] = 78.
 delay['ee_input'] = (0*b.ms,10*b.ms)
@@ -307,10 +317,10 @@ else:
 offset = 20.0*b.mV
 v_thresh_e = '(v>(theta - offset + ' + str(v_thresh_e) + ')) * (timer>refrac_e)'
 
-
+# amp(amplitude) 진폭 # Tge = 흥분성 시냅스 후 전위의 시간 상수  # Tgi = 억제성 시냅스 후 전위의 시간 상수
 neuron_eqs_e = '''
         dv/dt = ((v_rest_e - v) + (I_synE+I_synI) / nS) / (100*ms)  : volt
-        I_synE = ge * nS *         -v                           : amp
+        I_synE = ge * nS *         -v                           : amp   
         I_synI = gi * nS * (-100.*mV-v)                          : amp
         dge/dt = -ge/(1.0*ms)                                   : 1
         dgi/dt = -gi/(2.0*ms)                                  : 1
@@ -336,7 +346,7 @@ eqs_stdp_ee = '''
             '''
 eqs_stdp_pre_ee = 'pre = 1.; w -= nu_ee_pre * post1'
 eqs_stdp_post_ee = 'post2before = post2; w += nu_ee_post * pre * post2before; post1 = 1.; post2 = 1.'
-    
+
 b.ion()
 fig_num = 1
 neuron_groups = {}
@@ -348,52 +358,56 @@ spike_monitors = {}
 spike_counters = {}
 result_monitor = np.zeros((update_interval,n_e))
 
-neuron_groups['e'] = b.NeuronGroup(n_e*len(population_names), neuron_eqs_e, threshold= v_thresh_e, refractory= refrac_e, reset= scr_e, 
+# scr_e = v_rest_e = -65. * b.mV
+neuron_groups['e'] = b.NeuronGroup(n_e*len(population_names), neuron_eqs_e, threshold= v_thresh_e, refractory= refrac_e, reset= scr_e,
                                    compile = True, freeze = True)
-neuron_groups['i'] = b.NeuronGroup(n_i*len(population_names), neuron_eqs_i, threshold= v_thresh_i, refractory= refrac_i, reset= v_reset_i, 
+neuron_groups['i'] = b.NeuronGroup(n_i*len(population_names), neuron_eqs_i, threshold= v_thresh_i, refractory= refrac_i, reset= v_reset_i,
                                    compile = True, freeze = True)
 
 
-#------------------------------------------------------------------------------ 
-# create network population and recurrent connections
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
+# create network population and recurrent connections # 네트워크 모집단 및 반복 연결 생성
+#------------------------------------------------------------------------------
+# population_names = ['A']
 for name in population_names:
     print 'create neuron group', name
-    
+
     neuron_groups[name+'e'] = neuron_groups['e'].subgroup(n_e)
     neuron_groups[name+'i'] = neuron_groups['i'].subgroup(n_i)
-    
+
+    # 해당 뉴런그룹의 볼트 설정
     neuron_groups[name+'e'].v = v_rest_e - 40. * b.mV
     neuron_groups[name+'i'].v = v_rest_i - 40. * b.mV
     if test_mode or weight_path[-8:] == 'weights/':
         neuron_groups['e'].theta = np.load(weight_path + 'theta_' + name + ending + '.npy')
     else:
         neuron_groups['e'].theta = np.ones((n_e)) * 20.0*b.mV
-    
+
     print 'create recurrent connections'
+    # recurrent_conn_names = ['ei', 'ie']
     for conn_type in recurrent_conn_names:
         connName = name+conn_type[0]+name+conn_type[1]
         weightMatrix = get_matrix_from_file(weight_path + '../random/' + connName + ending + '.npy')
-        connections[connName] = b.Connection(neuron_groups[connName[0:2]], neuron_groups[connName[2:4]], structure= conn_structure, 
+        connections[connName] = b.Connection(neuron_groups[connName[0:2]], neuron_groups[connName[2:4]], structure= conn_structure,
                                                     state = 'g'+conn_type[0])
         connections[connName].connect(neuron_groups[connName[0:2]], neuron_groups[connName[2:4]], weightMatrix)
-                
+
     if ee_STDP_on:
         if 'ee' in recurrent_conn_names:
-            stdp_methods[name+'e'+name+'e'] = b.STDP(connections[name+'e'+name+'e'], eqs=eqs_stdp_ee, pre = eqs_stdp_pre_ee, 
+            stdp_methods[name+'e'+name+'e'] = b.STDP(connections[name+'e'+name+'e'], eqs=eqs_stdp_ee, pre = eqs_stdp_pre_ee,
                                                            post = eqs_stdp_post_ee, wmin=0., wmax= wmax_ee)
 
-    print 'create monitors for', name
+    print 'create monitors for', name   # PopulationRateMonitor = 순간 firing rate를 기록하는 클래스
     rate_monitors[name+'e'] = b.PopulationRateMonitor(neuron_groups[name+'e'], bin = (single_example_time+resting_time)/b.second)
     rate_monitors[name+'i'] = b.PopulationRateMonitor(neuron_groups[name+'i'], bin = (single_example_time+resting_time)/b.second)
     spike_counters[name+'e'] = b.SpikeCounter(neuron_groups[name+'e'])
-    
-    if record_spikes:
+
+    if record_spikes:       # SpikeMonitor = 스파이크를 기록하는 클래스
         spike_monitors[name+'e'] = b.SpikeMonitor(neuron_groups[name+'e'])
         spike_monitors[name+'i'] = b.SpikeMonitor(neuron_groups[name+'i'])
 
 if record_spikes:
-    b.figure(fig_num)
+    b.figure(fig_num) # fig_num = 1
     fig_num += 1
     b.ion()
     b.subplot(211)
@@ -402,32 +416,35 @@ if record_spikes:
     b.raster_plot(spike_monitors['Ai'], refresh=1000*b.ms, showlast=1000*b.ms)
 
 
-#------------------------------------------------------------------------------ 
-# create input population and connections from input populations 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
+# create input population and connections from input populations 입력 모집단 및 입력 모집단에서 연결 생성
+#------------------------------------------------------------------------------
 pop_values = [0,0,0]
+# input_population_names = ['X']
 for i,name in enumerate(input_population_names):
-    input_groups[name+'e'] = b.PoissonGroup(n_input, 0)
+    input_groups[name+'e'] = b.PoissonGroup(n_input, 0) # PoissonGroup(num_inputs, rates=input_rate)
     rate_monitors[name+'e'] = b.PopulationRateMonitor(input_groups[name+'e'], bin = (single_example_time+resting_time)/b.second)
 
+# input_connection_names = ['XA']
 for name in input_connection_names:
     print 'create connections between', name[0], 'and', name[1]
+    # input_conn_names = ['ee_input']
     for connType in input_conn_names:
-        connName = name[0] + connType[0] + name[1] + connType[1]
+        connName = name[0] + connType[0] + name[1] + connType[1] # XeAe
         weightMatrix = get_matrix_from_file(weight_path + connName + ending + '.npy')
-        connections[connName] = b.Connection(input_groups[connName[0:2]], neuron_groups[connName[2:4]], structure= conn_structure, 
+        connections[connName] = b.Connection(input_groups[connName[0:2]], neuron_groups[connName[2:4]], structure= conn_structure,
                                                     state = 'g'+connType[0], delay=True, max_delay=delay[connType][1])
         connections[connName].connect(input_groups[connName[0:2]], neuron_groups[connName[2:4]], weightMatrix, delay=delay[connType])
-     
+
     if ee_STDP_on:
         print 'create STDP for connection', name[0]+'e'+name[1]+'e'
-        stdp_methods[name[0]+'e'+name[1]+'e'] = b.STDP(connections[name[0]+'e'+name[1]+'e'], eqs=eqs_stdp_ee, pre = eqs_stdp_pre_ee, 
+        stdp_methods[name[0]+'e'+name[1]+'e'] = b.STDP(connections[name[0]+'e'+name[1]+'e'], eqs=eqs_stdp_ee, pre = eqs_stdp_pre_ee,
                                                        post = eqs_stdp_post_ee, wmin=0., wmax= wmax_ee)
 
 
-#------------------------------------------------------------------------------ 
-# run the simulation and set inputs
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
+# run the simulation and set inputs # 시뮬레이션을 실행하고 입력을 설정합니다.
+#------------------------------------------------------------------------------
 previous_spike_count = np.zeros(n_e)
 assignments = np.zeros(n_e)
 input_numbers = [0] * num_examples
@@ -440,6 +457,7 @@ if do_plot_performance:
 for i,name in enumerate(input_population_names):
     input_groups[name+'e'].rate = 0
 b.run(0)
+
 j = 0
 while j < (int(num_examples)):
     if test_mode:
@@ -453,7 +471,7 @@ while j < (int(num_examples)):
     input_groups['Xe'].rate = rates
 #     print 'run number:', j+1, 'of', int(num_examples)
     b.run(single_example_time, report='text')
-            
+
     if j % update_interval == 0 and j > 0:
         assignments = get_new_assignments(result_monitor[:], input_numbers[j-update_interval : j])
     if j % weight_update_interval == 0 and not test_mode:
@@ -461,13 +479,15 @@ while j < (int(num_examples)):
     if j % save_connections_interval == 0 and j > 0 and not test_mode:
         save_connections(str(j))
         save_theta(str(j))
-    
+
     current_spike_count = np.asarray(spike_counters['Ae'].count[:]) - previous_spike_count
     previous_spike_count = np.copy(spike_counters['Ae'].count[:])
     if np.sum(current_spike_count) < 5:
         input_intensity += 1
         for i,name in enumerate(input_population_names):
-            input_groups[name+'e'].rate = 0
+            input_groups[name+'e'].rate.
+            .0\
+                =. 0
         b.run(resting_time)
     else:
         result_monitor[j%update_interval,:] = current_spike_count
@@ -489,9 +509,9 @@ while j < (int(num_examples)):
         j += 1
 
 
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 # save results
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 print 'save results'
 if not test_mode:
     save_theta()
@@ -500,11 +520,11 @@ if not test_mode:
 else:
     np.save(data_path + 'activity/resultPopVecs' + str(num_examples), result_monitor)
     np.save(data_path + 'activity/inputNumbers' + str(num_examples), input_numbers)
-    
 
-#------------------------------------------------------------------------------ 
+
+#------------------------------------------------------------------------------
 # plot results
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 if rate_monitors:
     b.figure(fig_num)
     fig_num += 1
@@ -512,7 +532,7 @@ if rate_monitors:
         b.subplot(len(rate_monitors), 1, i)
         b.plot(rate_monitors[name].times/b.second, rate_monitors[name].rate, '.')
         b.title('Rates of population ' + name)
-    
+
 if spike_monitors:
     b.figure(fig_num)
     fig_num += 1
@@ -520,7 +540,7 @@ if spike_monitors:
         b.subplot(len(spike_monitors), 1, i)
         b.raster_plot(spike_monitors[name])
         b.title('Spikes of population ' + name)
-        
+
 if spike_counters:
     b.figure(fig_num)
     fig_num += 1
@@ -532,6 +552,5 @@ if spike_counters:
 plot_2d_input_weights()
 b.ioff()
 b.show()
-
 
 
